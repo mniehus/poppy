@@ -26,22 +26,32 @@
 # be accessible, and the documentation will not build correctly.
 
 import datetime
+import os
 import sys
 import stsci_rtd_theme
 
 try:
-    from sphinx_astropy.conf.v1 import *  # noqa
+    import astropy_helpers
 except ImportError:
-    print('ERROR: the documentation requires the sphinx-astropy package to be installed')
-    sys.exit(1)
-
-# Get configuration information from setup.cfg
-from configparser import ConfigParser
-conf = ConfigParser()
+    # Building from inside the docs/ directory?
+    if os.path.basename(os.getcwd()) == 'docs':
+        a_h_path = os.path.abspath(os.path.join('..', 'astropy_helpers'))
+        if os.path.isdir(a_h_path):
+            sys.path.insert(1, a_h_path)
 
 
 def setup(app):
     app.add_stylesheet("stsci.css")
+
+# Load all of the global Astropy configuration
+from astropy_helpers.sphinx.conf import *
+
+# Get configuration information from setup.cfg
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
+conf = ConfigParser()
 
 conf.read([os.path.join(os.path.dirname(__file__), '..', 'setup.cfg')])
 setup_cfg = dict(conf.items('metadata'))
@@ -107,7 +117,7 @@ issues_github_path = "spacetelescope/poppy"
 
 
 # This does not *have* to match the package name, but typically does
-project = setup_cfg['name']
+project = setup_cfg['package_name']
 author = setup_cfg['author']
 copyright = '{0}, {1}'.format(
     datetime.datetime.now().year, author)
@@ -116,17 +126,13 @@ copyright = '{0}, {1}'.format(
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 
-__import__(setup_cfg['name'])
-package = sys.modules[setup_cfg['name']]
+__import__(setup_cfg['package_name'])
+package = sys.modules[setup_cfg['package_name']]
 
 # The short X.Y version.
-try:
-    version = package.__version__.split('-', 1)[0]
-    # The full version, including alpha/beta/rc tags.
-    release = package.__version__
-except AttributeError:
-    version = 'dev'
-    release = 'dev'
+version = package.__version__.split('-', 1)[0]
+# The full version, including alpha/beta/rc tags.
+release = package.__version__
 
 # -- Options for HTML output ---------------------------------------------------
 
@@ -193,7 +199,7 @@ man_pages = [('index', project.lower(), project + u' Documentation',
 if eval(setup_cfg.get('edit_on_github')):
     extensions += ['astropy.sphinx.ext.edit_on_github']
 
-    versionmod = __import__(setup_cfg['name'] + '.version')
+    versionmod = __import__(setup_cfg['package_name'] + '.version')
     edit_on_github_project = setup_cfg['github_project']
     if versionmod.version.release:
         edit_on_github_branch = "v" + versionmod.version.version
